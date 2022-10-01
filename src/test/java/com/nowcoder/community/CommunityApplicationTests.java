@@ -6,6 +6,7 @@ import com.nowcoder.community.entity.DiscussPost;
 import com.nowcoder.community.entity.User;
 import com.nowcoder.community.service.DiscussPostService;
 import com.nowcoder.community.service.UserService;
+import com.nowcoder.community.utils.MailClient;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -18,12 +19,12 @@ class CommunityApplicationTests {
 	@Autowired
 	private DiscussPostService discussPostService;
 
+	@Autowired
+	private MailClient mailClient;
+
 	@Test
 	void contextLoads() {
-		List<DiscussPost> discussPosts = discussPostService.queryDiscussPosts(0, 2, 10);
-		for (DiscussPost discussPost : discussPosts) {
-			System.out.println(discussPost);
-		}
+		mailClient.sendMail("742277203@qq.com", "text", "测试");
 	}
 
 }
