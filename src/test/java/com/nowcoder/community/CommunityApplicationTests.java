@@ -10,6 +10,8 @@ import com.nowcoder.community.utils.MailClient;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.thymeleaf.TemplateEngine;
+import org.thymeleaf.context.Context;
 
 @SpringBootTest
 class CommunityApplicationTests {
@@ -22,9 +24,21 @@ class CommunityApplicationTests {
 	@Autowired
 	private MailClient mailClient;
 
+	@Autowired
+	private TemplateEngine templateEngine;
+
 	@Test
 	void contextLoads() {
-		mailClient.sendMail("742277203@qq.com", "text", "测试");
+		mailClient.sendMail("742277203@qq.com", "text", "测试", true);
+	}
+
+	@Test
+	void testSendHtml() {
+		Context context = new Context();
+		context.setVariable("username", "sunday");
+		String content = templateEngine.process("/mail/demo", context);
+		System.out.println(content);
+		mailClient.sendMail("742277203@qq.com", "HTML", content, true);
 	}
 
 }

@@ -22,14 +22,14 @@ public class MailClient {
     @Value("${spring.mail.username}")
     private String from;
 
-    public void sendMail(String to, String subject, String text) {
+    public void sendMail(String to, String subject, String text, boolean html) {
         try {
             MimeMessage mimeMessage = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(mimeMessage);
             helper.setFrom(from);
             helper.setTo(to);
             helper.setSubject(subject);
-            helper.setText(text);
+            helper.setText(text, html);
             mailSender.send(helper.getMimeMessage());
         } catch (MessagingException e) {
             logger.error("发送邮件失败: "+e.getMessage());
