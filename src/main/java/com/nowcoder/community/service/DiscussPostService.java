@@ -17,4 +17,10 @@ public interface DiscussPostService extends IService<DiscussPost> {
     List<DiscussPost> queryDiscussPosts(int userId, int page, int size);
 
     int queryDiscussPostRows(int userId);
+
+    void addDiscussPost(DiscussPost post);
+
+    void updateType(int id, int i);
+
+    void updateStatus(int id, int i);
 }

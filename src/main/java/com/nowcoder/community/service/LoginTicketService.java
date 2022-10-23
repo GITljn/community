@@ -11,6 +11,7 @@ import com.baomidou.mybatisplus.extension.service.IService;
  * @author ljn
  * @since 2022-10-01
  */
+@Deprecated
 public interface LoginTicketService extends IService<LoginTicket> {
     int insertLoginTicket(LoginTicket loginTicket);
     LoginTicket selectByTicket(String ticket);

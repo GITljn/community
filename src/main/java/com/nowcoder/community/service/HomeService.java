@@ -5,5 +5,5 @@ import com.nowcoder.community.utils.PageInfo;
 import java.util.Map;
 
 public interface HomeService {
-    Map<String, Object> queryIndexPage(PageInfo pageInfo);
+    Map<String, Object> queryIndexPage(PageInfo pageInfo, int orderMode);
 }

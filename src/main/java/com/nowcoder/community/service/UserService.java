@@ -2,7 +2,9 @@ package com.nowcoder.community.service;
 
 import com.nowcoder.community.entity.User;
 import com.baomidou.mybatisplus.extension.service.IService;
+import org.springframework.security.core.GrantedAuthority;
 
+import java.util.Collection;
 import java.util.Map;
 
 /**
@@ -23,11 +25,13 @@ public interface UserService extends IService<User> {
     int updateHeader(int id, String headerUrl);
     int updatePassword(int id, String password);
 
-    public Map<String, Object> register(User user);
+    Map<String, Object> register(User user);
 
-    public int activation(int userId, String code);
+    int activation(int userId, String code);
 
-    public Map<String, Object> login(String username, String password, int expiredSeconds);
+    Map<String, Object> login(String username, String password, int expiredSeconds);
 
-    public void logout(String ticket);
+    void logout(String ticket);
+
+    Collection<? extends GrantedAuthority> getAuthorities(int userId);
 }

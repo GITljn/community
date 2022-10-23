@@ -59,7 +59,7 @@ public class CodeGenerator {
         // 5、策略配置
         StrategyConfig strategy = new StrategyConfig();
         // 根据表进行逆向工程，多个表逗号隔开
-        strategy.setInclude("login_ticket");
+        strategy.setInclude("message");
         // 数据库表名映射到实体类名的策略
         strategy.setNaming(NamingStrategy.underline_to_camel);
         // 生成实体类名时去掉表名前缀，只有模块名和表名前缀一致时才起作用，否则直接指定表名前缀

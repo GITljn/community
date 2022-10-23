@@ -8,21 +8,17 @@ import com.nowcoder.community.mapper.UserMapper;
 import com.nowcoder.community.service.LoginTicketService;
 import com.nowcoder.community.service.UserService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.nowcoder.community.utils.CommunityConstant;
-import com.nowcoder.community.utils.MD5Util;
-import com.nowcoder.community.utils.MailClient;
-import com.nowcoder.community.utils.UUIDUtil;
+import com.nowcoder.community.utils.*;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.stereotype.Service;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
 
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Random;
+import java.util.*;
 
 /**
  * <p>
@@ -41,7 +37,10 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     private TemplateEngine templateEngine;
 
     @Autowired
-    private LoginTicketService loginTicketService;
+    private RedisTemplate redisTemplate;
+
+//    @Autowired
+//    private LoginTicketService loginTicketService;
 
     @Value("${community.path.domain}")
     private String domain;
@@ -51,7 +50,11 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
 
     @Override
     public User queryById(int id) {
-        return baseMapper.selectById(id);
+        User user = getUserFromCache(id);
+        if (user != null)
+            return user;
+        user = getUserFromDatabase(id);
+        return user;
     }
 
     @Override
@@ -75,18 +78,24 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
 
     @Override
     public int updateStatus(int id, int status) {
+        removeUserFromCache(id);
         LambdaUpdateWrapper<User> wrapper = new LambdaUpdateWrapper<>();
         wrapper.eq(User::getId, id);
         wrapper.set(User::getStatus, status);
-        return baseMapper.update(null, wrapper);
+        int count = baseMapper.update(null, wrapper);
+        removeUserFromCache(id);
+        return count;
     }
 
     @Override
     public int updateHeader(int id, String headerUrl) {
+        removeUserFromCache(id);
         LambdaUpdateWrapper<User> wrapper = new LambdaUpdateWrapper<>();
         wrapper.eq(User::getId, id);
         wrapper.set(User::getHeaderUrl, headerUrl);
-        return baseMapper.update(null, wrapper);
+        int count = baseMapper.update(null, wrapper);
+        removeUserFromCache(id);
+        return count;
     }
 
     @Override
@@ -94,7 +103,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         LambdaUpdateWrapper<User> wrapper = new LambdaUpdateWrapper<>();
         wrapper.eq(User::getId, id);
         wrapper.set(User::getPassword, password);
-        return baseMapper.update(null, wrapper);
+        int count = baseMapper.update(null, wrapper);
+        removeUserFromCache(id);
+        return count;
     }
 
     @Override
@@ -162,7 +173,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         if (user.getStatus() == 1) {
             return ACTIVATION_REPEAT;
         } else if (user.getActivationCode().equals(code)) {
+            removeUserFromCache(userId);
             updateStatus(userId, 1);
+            removeUserFromCache(userId);
             return ACTIVATION_SUCCESS;
         } else {
             return ACTIVATION_FAILURE;
@@ -209,7 +222,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         loginTicket.setTicket(UUIDUtil.uuid());
         loginTicket.setStatus(0);
         loginTicket.setExpired(new Date(System.currentTimeMillis() + expiredSeconds * 1000L));
-        loginTicketService.insertLoginTicket(loginTicket);
+//        loginTicketService.insertLoginTicket(loginTicket);
+        String ticketKey = RedisKeyUtil.getTicketKey(loginTicket.getTicket());
+        redisTemplate.opsForValue().set(ticketKey, loginTicket);
 
         map.put("ticket", loginTicket.getTicket());
         return map;
@@ -217,6 +232,48 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
 
     @Override
     public void logout(String ticket) {
-        loginTicketService.updateStatus(ticket, 1);
+//        loginTicketService.updateStatus(ticket, 1);
+        String ticketKey = RedisKeyUtil.getTicketKey(ticket);
+        LoginTicket loginTicket = (LoginTicket) redisTemplate.opsForValue().get(ticketKey);
+        loginTicket.setStatus(1);
+        redisTemplate.opsForValue().set(ticketKey, loginTicket);
+    }
+
+    @Override
+    public Collection<? extends GrantedAuthority> getAuthorities(int userId) {
+        List<GrantedAuthority> authorities = new ArrayList<>();
+        Integer type = queryById(userId).getType();
+        GrantedAuthority authority = new GrantedAuthority() {
+            @Override
+            public String getAuthority() {
+                switch (type) {
+                    case 1:
+                        return AUTHORITY_ADMIN;
+                    case 2:
+                        return AUTHORITY_MODERATOR;
+                    default:
+                        return AUTHORITY_USER;
+                }
+            }
+        };
+        authorities.add(authority);
+        return authorities;
+    }
+
+    private User getUserFromCache(int userId) {
+        String userKey = RedisKeyUtil.getUserKey(userId);
+        return (User) redisTemplate.opsForValue().get(userKey);
+    }
+
+    private User getUserFromDatabase(int userId) {
+        User user = getById(userId);
+        String userKey = RedisKeyUtil.getUserKey(userId);
+        redisTemplate.opsForValue().set(userKey, user);
+        return user;
+    }
+
+    private void removeUserFromCache(int userId) {
+        String userKey = RedisKeyUtil.getUserKey(userId);
+        redisTemplate.delete(userKey);
     }
 }
